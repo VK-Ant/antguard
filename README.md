@@ -1,5 +1,3 @@
-# antguard
-
 <p align="center">
   <img src="https://raw.githubusercontent.com/VK-Ant/antguard/main/assets/antguard.png" alt="antguard" width="800"/>
 </p>
@@ -58,22 +56,9 @@ g.save("./logs/")  # creates .log + .txt + .json
 
 ## How It Works
 
-```
-               YOUR CODE (unchanged)
-                       |
-            +----------+----------+
-            |          |          |
-          FILE      PROCESS   NETWORK
-          watch      tree     boundary
-            |          |          |
-            +----------+----------+
-                       |
-                antguard profiler
-                       |
-              correlation engine
-                       |
-              .log / .txt / .json
-```
+<p align="center">
+  <img src="https://raw.githubusercontent.com/VK-Ant/antguard/main/assets/arch.png" alt="arc" width="100%">
+</p>
 
 antguard wraps your code from the outside. It never reads file contents.
 It tracks data flow by fingerprinting files and correlating byte movement.
