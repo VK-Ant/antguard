@@ -1,11 +1,11 @@
 # antguard
 
 <p align="center">
-  <img src="assets/antguard.png" alt="antguard" width="800"/>
+  <img src="https://raw.githubusercontent.com/VK-Ant/antguard/main/assets/antguard.png" alt="antguard" width="800"/>
 </p>
 
 <p align="center">
-  <strong>Guard. Detect. Protect.</strong><br>
+  <strong>Guard, Detect, Protect.</strong><br>
   Pure system-level profiler for AI data privacy. Like <code>cProfile</code>, but for data movement.
 </p>
 
@@ -16,7 +16,7 @@
   <a href="https://colab.research.google.com/github/VK-Ant/antguard/blob/main/demo/antguard_quickstart.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 </p>
 
-No AI. No API. No cloud. No regex. Works offline. Works air-gapped.
+No AI, No API, No cloud, No regex, Works offline, Works air-gapped.
 
 ## Install
 
