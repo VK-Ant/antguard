@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "antguard"
+version = "0.1.0"
+description = "Guard. Detect. Protect. Pure system-level profiler for AI data privacy."
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.8"
+authors = [
+    {name = "VK-Ant (Venkatkumar Rajan)"},
+]
+keywords = [
+    "ai-security", "data-privacy", "runtime-monitoring",
+    "profiler", "audit", "exfiltration-detection",
+    "file-monitoring", "network-monitoring",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: System :: Monitoring",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "watchdog>=3.0",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+gpu = ["pynvml>=11.0"]
+all = ["pynvml>=11.0"]
+
+[project.urls]
+Homepage = "https://github.com/VK-Ant/antguard"
+Repository = "https://github.com/VK-Ant/antguard"
+Issues = "https://github.com/VK-Ant/antguard/issues"
+
+[tool.setuptools.packages.find]
+include = ["antguard*"]
