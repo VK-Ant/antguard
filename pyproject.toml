@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "antguard"
-version = "0.1.2"
-description = "Guard, Detect, Protect. Pure system-level profiler for AI data privacy."
+version = "0.2.0"
+description = "Guard. Detect. Protect. Pure system-level profiler for AI data privacy."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.8"
 authors = [
-    {name = "Venkatkumar Rajan"},
+    {name = "VK-Ant (Venkatkumar Rajan)"},
 ]
 keywords = [
     "ai-security", "data-privacy", "runtime-monitoring",
@@ -40,7 +40,9 @@ dependencies = [
 
 [project.optional-dependencies]
 gpu = ["pynvml>=11.0"]
-all = ["pynvml>=11.0"]
+policy = ["pyyaml>=6.0"]
+llmevalkit = ["llmevalkit"]
+all = ["pynvml>=11.0", "pyyaml>=6.0", "llmevalkit"]
 
 [project.urls]
 Homepage = "https://github.com/VK-Ant/antguard"

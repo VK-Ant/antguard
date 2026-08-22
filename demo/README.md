@@ -22,6 +22,9 @@ pip install antguard
 | `demo_04_runtime_metrics.py` | CPU, GPU, memory profiling during heavy computation | `python demo/demo_04_runtime_metrics.py` |
 | `demo_05_full_audit.py` | All features combined — the showcase demo | `python demo/demo_05_full_audit.py` |
 | `demo_06_wrap_any_library.py` | Shows antguard wrapping any code without changes | `python demo/demo_06_wrap_any_library.py` |
+| `demo_07_policy_engine.py` | Define rules, detect violations, generate baselines | `python demo/demo_07_policy_engine.py` |
+| `demo_08_endpoint_observer.py` | Detects calls to known service endpoints | `python demo/demo_08_endpoint_observer.py` |
+| `demo_09_bridge_report.py` | Combined system behavior + quality report | `python demo/demo_09_bridge_report.py` |
 
 ## Recommended Order
 

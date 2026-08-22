@@ -94,7 +94,7 @@ def main():
 
         print(f"  Result: {result}")
         print(f"  Data left: {g.did_data_leave()}")
-        print(f"  Risk: {g.risk_level().value}")
+        print(f"  Risk: {g.risk_level().name}")
         print(f"  File events: {len(g.file_events())}")
         print()
 
@@ -124,7 +124,7 @@ def main():
         print(f"  - DocExtractor: {doc_result['pages']} page(s)")
         print(f"  - LLMAgent: {agent_result[:40]}")
         print(f"\n  Data left: {g.did_data_leave()}")
-        print(f"  Risk: {g.risk_level().value}")
+        print(f"  Risk: {g.risk_level().name}")
         print(f"  Total file events: {len(g.file_events())}")
         print()
 
@@ -147,7 +147,7 @@ def main():
         print(f"  # ... your code ...")
         print(f"  guard.stop()")
         print(f"\n  Data left: {guard.did_data_leave()}")
-        print(f"  Risk: {guard.risk_level().value}")
+        print(f"  Risk: {guard.risk_level().name}")
         print()
 
         # === Example 4: Compare with cProfile ===

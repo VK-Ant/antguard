@@ -134,7 +134,7 @@ def main():
                 print(f"\nNo anomalies detected")
 
         print(f"\nData left system: {g.did_data_leave()}")
-        print(f"Risk level: {g.risk_level().value}")
+        print(f"Risk level: {g.risk_level().name}")
 
         paths = g.save(log_dir)
 

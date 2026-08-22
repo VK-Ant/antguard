@@ -125,7 +125,7 @@ class AuditLogger:
                 f"proc_events={len(process_events)} "
                 f"correlations={len(correlations)} "
                 f"data_left={'YES' if data_left else 'NO'} "
-                f"risk={overall_risk.value}"
+                f"risk={overall_risk.name}"
             )
 
         return {"txt": txt_path, "json": json_path, "log": self._log_filepath}
@@ -156,7 +156,7 @@ class AuditLogger:
                 f.write(f"  [{ev.action.value:8s}] {ev.path}  "
                         f"{format_bytes(ev.size_bytes)}  "
                         f"{ev.process_name}(pid {ev.process_pid})  "
-                        f"{ev.risk.value}\n")
+                        f"{ev.risk.name}\n")
         else:
             f.write("  None\n")
         f.write("\n")
@@ -169,7 +169,7 @@ class AuditLogger:
                 f.write(f"  [{ext:8s}] {ev.destination}:{ev.port}  "
                         f"sent={format_bytes(ev.bytes_sent)}  "
                         f"{ev.process_name}(pid {ev.process_pid})  "
-                        f"first_seen={ev.first_seen}  {ev.risk.value}\n")
+                        f"first_seen={ev.first_seen}  {ev.risk.name}\n")
         else:
             f.write("  None\n")
         f.write("\n")
@@ -180,9 +180,9 @@ class AuditLogger:
         f.write(f"-- PROCESS EVENTS ({len(process_events)} total, {len(suspicious)} suspicious) --\n")
         if suspicious:
             for ev in suspicious:
-                f.write(f"  [{ev.event_type.value:12s}] {ev.name}(pid {ev.pid})  "
+                f.write(f"  [{ev.event_type.name:12s}] {ev.name}(pid {ev.pid})  "
                         f"parent={ev.parent_name}({ev.parent_pid})  "
-                        f"cmd={ev.command[:60]}  {ev.risk.value}\n")
+                        f"cmd={ev.command[:60]}  {ev.risk.name}\n")
         elif process_events:
             f.write("  All processes normal\n")
         else:
@@ -197,7 +197,7 @@ class AuditLogger:
                         f"{m.destination}:{m.destination_port}  "
                         f"method={m.method}  confidence={m.confidence:.2f}  "
                         f"file={format_bytes(m.file_size)} out={format_bytes(m.outbound_size)}  "
-                        f"gap={m.time_gap_sec:.1f}s  {m.risk.value}\n")
+                        f"gap={m.time_gap_sec:.1f}s  {m.risk.name}\n")
         else:
             f.write("  No file-to-network correlations detected\n")
         f.write("\n")
@@ -228,7 +228,7 @@ class AuditLogger:
 
         # overall
         f.write("=" * 50 + "\n")
-        f.write(f"OVERALL RISK: {overall_risk.value}\n")
+        f.write(f"OVERALL RISK: {overall_risk.name}\n")
         if data_left:
             f.write("REASON: Data detected leaving system boundary\n")
         f.write("=" * 50 + "\n")
@@ -239,7 +239,7 @@ class AuditLogger:
     ):
         plat = get_platform_info()
         report = {
-            "antguard_version": "0.1.0",
+            "antguard_version": "0.2.0",
             "session_id": self._session_id,
             "platform": plat,
             "start_time": time.strftime(
@@ -248,7 +248,7 @@ class AuditLogger:
             ),
             "duration_sec": round(duration, 1),
             "data_left_system": data_left,
-            "overall_risk": overall_risk.value,
+            "overall_risk": overall_risk.name,
             "summary": {
                 "file_events": len(file_events),
                 "network_events": len(network_events),

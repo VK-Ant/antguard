@@ -94,7 +94,7 @@ def main():
         print("RESULTS")
         print("=" * 60)
         print(f"\nData left system: {g.did_data_leave()}")
-        print(f"Risk level: {g.risk_level().value}")
+        print(f"Risk level: {g.risk_level().name}")
         print(f"File events: {len(g.file_events())}")
         print(f"Network events: {len(g.net_events())}")
         print(f"Process events: {len(g.proc_events())}")

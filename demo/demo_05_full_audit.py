@@ -225,11 +225,11 @@ def main():
         if data_left:
             print("  ██████████████████████████████████████")
             print("  ██  DATA LEFT SYSTEM: YES          ██")
-            print("  ██  OVERALL RISK: {:18s}██".format(risk.value))
+            print("  ██  OVERALL RISK: {:18s}██".format(risk.name))
             print("  ██████████████████████████████████████")
         else:
             print("  DATA LEFT SYSTEM: NO")
-            print(f"  OVERALL RISK: {risk.value}")
+            print(f"  OVERALL RISK: {risk.name}")
 
         # summary counts
         print(f"\n  File events:      {len(g.file_events()):>4}")
@@ -244,27 +244,27 @@ def main():
             marker = ""
             if "api_keys" in ev.path or "financial" in ev.path:
                 marker = " <-- unexpected access"
-            print(f"  [{ev.action.value:8s}] {os.path.basename(ev.path)}"
-                  f"  {ev.size_bytes:>6} bytes  {ev.risk.value}{marker}")
+            print(f"  [{ev.action.name:8s}] {os.path.basename(ev.path)}"
+                  f"  {ev.size_bytes:>6} bytes  {ev.risk.name}{marker}")
 
         # network events
         if g.net_events():
             print(f"\n--- Network Events ---")
             for ev in g.net_events():
-                print(f"  [{ev.risk.value:8s}] {ev.destination}:{ev.port}"
+                print(f"  [{ev.risk.name:8s}] {ev.destination}:{ev.port}"
                       f"  sent={ev.bytes_sent} bytes"
                       f"  external={ev.is_external}"
                       f"  first_seen={ev.first_seen}")
 
         # process events
         suspicious = [e for e in g.proc_events()
-                      if e.risk.value in ("MEDIUM", "HIGH", "CRITICAL")]
+                      if e.risk.name in ("MEDIUM", "HIGH", "CRITICAL")]
         if suspicious:
             print(f"\n--- Suspicious Processes ---")
             for ev in suspicious:
-                print(f"  [{ev.risk.value:8s}] {ev.name} (pid {ev.pid})"
+                print(f"  [{ev.risk.name:8s}] {ev.name} (pid {ev.pid})"
                       f"  parent={ev.parent_name}"
-                      f"  type={ev.event_type.value}")
+                      f"  type={ev.event_type.name}")
 
         # correlations
         if g.correlations():
@@ -274,7 +274,7 @@ def main():
                       f" -> {m.destination}:{m.destination_port}"
                       f"  confidence={m.confidence:.2f}"
                       f"  method={m.method}"
-                      f"  risk={m.risk.value}")
+                      f"  risk={m.risk.name}")
 
         # runtime
         metrics = g.runtime_metrics()

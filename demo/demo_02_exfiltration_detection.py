@@ -124,7 +124,7 @@ def main():
         risk = g.risk_level()
 
         print(f"\nDATA LEFT SYSTEM: {'YES !!!' if data_left else 'NO'}")
-        print(f"RISK LEVEL: {risk.value}")
+        print(f"RISK LEVEL: {risk.name}")
         print(f"\nFile events: {len(g.file_events())}")
         print(f"Network events: {len(g.net_events())}")
         print(f"Process events: {len(g.proc_events())}")
@@ -134,7 +134,7 @@ def main():
         if g.net_events():
             print("\nNetwork Events Detected:")
             for ev in g.net_events():
-                print(f"  [{ev.risk.value:8s}] {ev.destination}:{ev.port} "
+                print(f"  [{ev.risk.name:8s}] {ev.destination}:{ev.port} "
                       f"sent={ev.bytes_sent} bytes "
                       f"proc={ev.process_name} "
                       f"external={ev.is_external} "
@@ -149,7 +149,7 @@ def main():
                 print(f"     Method: {m.method}")
                 print(f"     Confidence: {m.confidence:.2f}")
                 print(f"     Time gap: {m.time_gap_sec:.1f}s")
-                print(f"     Risk: {m.risk.value}")
+                print(f"     Risk: {m.risk.name}")
         else:
             print("\nNo byte-flow correlations (server was local network)")
 

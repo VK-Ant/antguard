@@ -7,10 +7,30 @@ import time
 
 
 class RiskLevel(Enum):
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
-    CRITICAL = "CRITICAL"
+    LOW = 0
+    MEDIUM = 1
+    HIGH = 2
+    CRITICAL = 3
+
+    def __gt__(self, other):
+        if isinstance(other, RiskLevel):
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, RiskLevel):
+            return self.value >= other.value
+        return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, RiskLevel):
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, RiskLevel):
+            return self.value <= other.value
+        return NotImplemented
 
 
 class FileAction(Enum):
@@ -51,7 +71,7 @@ class FileEvent:
     def to_dict(self):
         d = asdict(self)
         d["action"] = self.action.value
-        d["risk"] = self.risk.value
+        d["risk"] = self.risk.name
         return d
 
     def to_log_line(self):
@@ -60,7 +80,7 @@ class FileEvent:
             f"[{ts}] FILE  action={self.action.value} "
             f"path={self.path} bytes={self.size_bytes} "
             f"hash={self.file_hash[:12]} pid={self.process_pid} "
-            f"proc={self.process_name} risk={self.risk.value}"
+            f"proc={self.process_name} risk={self.risk.name}"
         )
 
 
@@ -82,7 +102,7 @@ class NetworkEvent:
     def to_dict(self):
         d = asdict(self)
         d["direction"] = self.direction.value
-        d["risk"] = self.risk.value
+        d["risk"] = self.risk.name
         return d
 
     def to_log_line(self):
@@ -93,7 +113,7 @@ class NetworkEvent:
             f"sent={self.bytes_sent} recv={self.bytes_recv} "
             f"pid={self.process_pid} proc={self.process_name} "
             f"external={self.is_external} first_seen={self.first_seen} "
-            f"risk={self.risk.value}"
+            f"risk={self.risk.name}"
         )
 
 
@@ -110,17 +130,17 @@ class ProcessEvent:
 
     def to_dict(self):
         d = asdict(self)
-        d["event_type"] = self.event_type.value
-        d["risk"] = self.risk.value
+        d["event_type"] = self.event_type.name
+        d["risk"] = self.risk.name
         return d
 
     def to_log_line(self):
         ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.timestamp))
         return (
-            f"[{ts}] PROC  event={self.event_type.value} "
+            f"[{ts}] PROC  event={self.event_type.name} "
             f"name={self.name} pid={self.pid} "
             f"parent={self.parent_name}({self.parent_pid}) "
-            f"cmd={self.command[:80]} risk={self.risk.value}"
+            f"cmd={self.command[:80]} risk={self.risk.name}"
         )
 
 
@@ -141,7 +161,7 @@ class CorrelationMatch:
 
     def to_dict(self):
         d = asdict(self)
-        d["risk"] = self.risk.value
+        d["risk"] = self.risk.name
         return d
 
     def to_log_line(self):
@@ -151,7 +171,7 @@ class CorrelationMatch:
             f"{self.destination}:{self.destination_port} "
             f"method={self.method} confidence={self.confidence:.2f} "
             f"file_bytes={self.file_size} out_bytes={self.outbound_size} "
-            f"gap={self.time_gap_sec:.1f}s risk={self.risk.value}"
+            f"gap={self.time_gap_sec:.1f}s risk={self.risk.name}"
         )
 
 

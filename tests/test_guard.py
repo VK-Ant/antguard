@@ -10,7 +10,7 @@ from antguard.models import RiskLevel
 
 
 def test_version():
-    assert __version__ == "0.1.0"
+    assert __version__ == "0.2.0"
 
 
 def test_guard_basic():
@@ -116,7 +116,7 @@ def test_context_manager():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("antguard v0.1.0 — Test Suite")
+    print("antguard v0.2.0 — Test Suite")
     print("=" * 60)
     print()
 

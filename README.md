@@ -21,9 +21,12 @@
 pip install antguard
 ```
 
-For NVIDIA GPU monitoring:
+Optional extras:
 ```bash
-pip install antguard[gpu]
+pip install antguard[gpu]          # NVIDIA GPU monitoring
+pip install antguard[policy]       # YAML policy files
+pip install antguard[llmevalkit]   # combined report bridge
+pip install antguard[all]          # everything
 ```
 
 ## Quick Start
@@ -52,6 +55,9 @@ g.save("./logs/")  # creates .log + .txt + .json
 | **Process** | Process creation, shell commands, suspicious binaries | psutil process tree |
 | **Correlation** | Match file bytes to outbound network data | Chunk hash + size + temporal |
 | **Runtime** | CPU, GPU, memory, disk I/O | psutil + pynvml (optional) |
+| **Policy** | Enforce file/network/process rules | Declarative YAML or dict |
+| **Observer** | Detect calls to known service endpoints | Network destination matching |
+| **Bridge** | Combined antguard + llmevalkit report | Optional unified audit |
 
 ## How It Works
 
@@ -65,7 +71,7 @@ It tracks data flow by fingerprinting files and correlating byte movement.
 ## API
 
 ```python
-from antguard import Guard
+from antguard import Guard, Policy
 
 guard = Guard(
     watch=["./data/"],           # directories to monitor
@@ -74,6 +80,8 @@ guard = Guard(
     correlate=True,              # byte-flow correlation
     runtime=True,                # CPU/GPU/memory metrics
     gpu=True,                    # GPU monitoring
+    policy=Policy({...}),        # security rules (optional)
+    observe_endpoints=True,      # endpoint detection (optional)
     log_path="./logs/",          # log output directory
 )
 
@@ -81,7 +89,7 @@ guard.start()
 # ... your code ...
 guard.stop()
 
-# Query results
+# Core
 guard.did_data_leave()       # bool
 guard.file_events()          # list of file events
 guard.net_events()           # list of network events
@@ -94,6 +102,66 @@ guard.anomalies()            # runtime anomalies
 guard.data_flow_map()        # full byte flow visualization
 guard.save("./logs/")        # write reports
 guard.summary()              # one-line summary
+
+# Policy
+guard.policy_violations()    # list of rule violations
+guard.generate_baseline()    # auto-generate policy from observation
+
+# Observer
+guard.endpoint_calls()       # detected service endpoint calls
+guard.file_to_endpoint()     # file read -> endpoint correlations
+guard.observer_summary()     # services, call counts, bytes
+```
+
+## Policy Engine
+
+Define rules for allowed behavior. Three modes: audit, detect, enforce.
+
+```python
+from antguard import Guard, Policy
+
+policy = Policy({
+    "file": {
+        "allow_read": ["./data/*"],
+        "deny_read": ["~/.ssh/*", "~/.aws/*"],
+    },
+    "network": {
+        "allow": ["localhost"],
+        "deny_all_other": True,
+    },
+    "process": {
+        "deny_shell": True,
+    },
+    "mode": "detect",
+})
+
+with Guard(watch=["./data/"], policy=policy) as g:
+    your_code()
+
+for v in g.policy_violations():
+    print(f"{v.category}: {v.rule} ({v.severity.value})")
+```
+
+Load from YAML: `policy = Policy.from_yaml("antguard-policy.yaml")`
+
+## Combined Report (Bridge)
+
+Optional integration with llmevalkit for unified audit.
+
+```python
+from antguard import Guard
+from antguard.bridge import UnifiedAudit
+
+with Guard(watch=["./data/"]) as g:
+    response = your_code()
+
+# with llmevalkit evaluation (optional)
+audit = UnifiedAudit(guard=g, evaluation={"faithfulness": 0.94, ...})
+audit.save("./reports/")
+
+# without llmevalkit (standalone)
+audit = UnifiedAudit(guard=g)
+audit.save("./reports/")
 ```
 
 ## Report Output
@@ -152,6 +220,11 @@ OVERALL RISK: LOW
 | [Suspicious Process](demo/demo_03_suspicious_process.py) | Shell and subprocess detection |
 | [Runtime Metrics](demo/demo_04_runtime_metrics.py) | CPU, GPU, memory profiling |
 | [Wrap Any Library](demo/demo_06_wrap_any_library.py) | Zero code changes — cProfile pattern |
+| [Policy Engine](demo/demo_07_policy_engine.py) | Define rules, detect violations, baselines |
+| [Endpoint Observer](demo/demo_08_endpoint_observer.py) | Detects calls to known service endpoints |
+| [Combined Report](demo/demo_09_bridge_report.py) | System behavior + quality in one report |
+
+No models, no API keys, no downloads needed. Every demo runs with plain Python.
 
 **Google Colab:** [Open quickstart notebook](https://colab.research.google.com/github/VK-Ant/antguard/blob/main/demo/antguard_quickstart.ipynb)
 
@@ -159,7 +232,7 @@ OVERALL RISK: LOW
 
 Core: `watchdog` + `psutil` (that's it)
 
-Optional: `pynvml` (NVIDIA GPU metrics)
+Optional: `pynvml` (GPU), `pyyaml` (YAML policies), `llmevalkit` (combined report)
 
 ## Memory Footprint
 
@@ -177,4 +250,4 @@ Apache 2.0
 
 ## Author
 
-**Venkatkumar Rajan**
+Venkatkumar Rajan

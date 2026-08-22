@@ -90,7 +90,7 @@ def main():
         print("=" * 60)
 
         print(f"\nData left system: {g.did_data_leave()}")
-        print(f"Risk level: {g.risk_level().value}")
+        print(f"Risk level: {g.risk_level().name}")
         print(f"File events: {len(g.file_events())}")
         print(f"Network events: {len(g.net_events())}")
         print(f"Process events: {len(g.proc_events())}")
@@ -100,13 +100,13 @@ def main():
             print(f"\nProcess Events Detected ({len(g.proc_events())}):")
             for ev in g.proc_events():
                 risk_marker = ""
-                if ev.risk.value == "HIGH":
+                if ev.risk.name == "HIGH":
                     risk_marker = " !!!"
-                elif ev.risk.value == "MEDIUM":
+                elif ev.risk.name == "MEDIUM":
                     risk_marker = " !"
-                print(f"  [{ev.event_type.value:12s}] {ev.name} (pid {ev.pid}) "
+                print(f"  [{ev.event_type.name:12s}] {ev.name} (pid {ev.pid}) "
                       f"parent={ev.parent_name} "
-                      f"risk={ev.risk.value}{risk_marker}")
+                      f"risk={ev.risk.name}{risk_marker}")
                 if ev.command and ev.command != ev.name:
                     print(f"    cmd: {ev.command[:80]}")
 
@@ -114,8 +114,8 @@ def main():
         if g.file_events():
             print(f"\nFile Events ({len(g.file_events())}):")
             for ev in g.file_events():
-                print(f"  [{ev.action.value:8s}] {os.path.basename(ev.path)} "
-                      f"({ev.size_bytes} bytes) risk={ev.risk.value}")
+                print(f"  [{ev.action.name:8s}] {os.path.basename(ev.path)} "
+                      f"({ev.size_bytes} bytes) risk={ev.risk.name}")
 
         # runtime anomalies
         anomalies = g.anomalies()

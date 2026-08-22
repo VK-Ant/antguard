@@ -17,14 +17,14 @@ Usage:
     g.save("./logs/")
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "VK-Ant (Venkatkumar Rajan)"
 __tagline__ = "Guard. Detect. Protect."
 
 import os
 import time
 import uuid
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
 from .models import (
     FileEvent,
@@ -41,6 +41,8 @@ from .process_profiler import ProcessProfiler
 from .correlation import CorrelationEngine
 from .runtime_profiler import RuntimeProfiler
 from .audit_logger import AuditLogger
+from .policy import Policy, PolicyViolation, BaselineGenerator
+from .observer import Observer, EndpointCall, FileToEndpointCorrelation
 
 
 class Guard:
@@ -74,6 +76,9 @@ class Guard:
         correlate: bool = True,
         runtime: bool = True,
         gpu: bool = True,
+        policy: Optional[Policy] = None,
+        observe_endpoints: bool = False,
+        custom_endpoints: Optional[Dict[str, str]] = None,
         network_allow_list: Optional[List[str]] = None,
         log_path: str = "./antguard_logs",
         log_format: str = "log",
@@ -91,6 +96,7 @@ class Guard:
         self._correlate = correlate
         self._runtime_enabled = runtime
         self._gpu = gpu
+        self._observe_endpoints = observe_endpoints
 
         self._session_id = str(uuid.uuid4())[:8]
         self._start_time: float = 0
@@ -103,6 +109,13 @@ class Guard:
         self._proc_profiler: Optional[ProcessProfiler] = None
         self._runtime_profiler: Optional[RuntimeProfiler] = None
         self._correlation_engine: Optional[CorrelationEngine] = None
+
+        # policy engine
+        self._policy: Optional[Policy] = policy
+
+        # observer
+        self._observer: Optional[Observer] = None
+        self._custom_endpoints = custom_endpoints
 
         # logger
         self._logger = AuditLogger(
@@ -182,6 +195,13 @@ class Guard:
                 chunk_size=self._chunk_size,
             )
 
+        # observer
+        if self._observe_endpoints:
+            self._observer = Observer(
+                custom_endpoints=self._custom_endpoints,
+                time_window_sec=self._correlation_time_window,
+            )
+
     def stop(self):
         """Stop all profilers and run correlation."""
         self._stop_time = time.time()
@@ -196,24 +216,48 @@ class Guard:
         if self._runtime_profiler:
             self._runtime_profiler.stop()
 
-        # run correlation
-        if (
-            self._correlation_engine
-            and self._file_profiler
-            and self._net_profiler
-        ):
-            self._correlation_engine.update_fingerprints(
-                self._file_profiler.fingerprints
-            )
-            self._correlations = self._correlation_engine.correlate(
-                self._file_profiler.events,
-                self._net_profiler.events,
-            )
+        try:
+            # run correlation
+            if (
+                self._correlation_engine
+                and self._file_profiler
+                and self._net_profiler
+            ):
+                self._correlation_engine.update_fingerprints(
+                    self._file_profiler.fingerprints
+                )
+                self._correlations = self._correlation_engine.correlate(
+                    self._file_profiler.events,
+                    self._net_profiler.events,
+                )
 
-        # compute overall risk
-        self._compute_risk()
+            # run observer
+            if self._observer and self._net_profiler:
+                for ev in self._net_profiler.events:
+                    self._observer.observe_network(ev)
+                if self._file_profiler:
+                    self._observer.correlate_files(
+                        self._file_profiler.events,
+                        self._net_profiler.events,
+                    )
 
-        self._logger.stop()
+            # run policy checks
+            if self._policy:
+                if self._file_profiler:
+                    for ev in self._file_profiler.events:
+                        self._policy.check_file_event(ev)
+                if self._net_profiler:
+                    for ev in self._net_profiler.events:
+                        self._policy.check_network_event(ev)
+                if self._proc_profiler:
+                    for ev in self._proc_profiler.events:
+                        self._policy.check_process_event(ev)
+
+            # compute overall risk
+            self._compute_risk()
+        finally:
+            # always close the log file (prevents Windows file lock errors)
+            self._logger.stop()
 
     def _compute_risk(self):
         risk = RiskLevel.LOW
@@ -221,7 +265,7 @@ class Guard:
         # correlations = highest priority
         if self._correlations:
             max_corr_risk = max(m.risk for m in self._correlations)
-            if max_corr_risk.value in ("HIGH", "CRITICAL"):
+            if max_corr_risk >= RiskLevel.HIGH:
                 risk = max_corr_risk
 
         # external network from watched processes only
@@ -229,8 +273,8 @@ class Guard:
             related = self._get_related_network_events()
             if related and risk == RiskLevel.LOW:
                 risk = RiskLevel.MEDIUM
-            high_risk = [e for e in related if e.risk.value in ("HIGH", "CRITICAL")]
-            if high_risk and risk.value not in ("HIGH", "CRITICAL"):
+            high_risk = [e for e in related if e.risk >= RiskLevel.HIGH]
+            if high_risk and risk < RiskLevel.HIGH:
                 risk = RiskLevel.HIGH
 
         # suspicious processes
@@ -352,7 +396,7 @@ class Guard:
                         "actions": [],
                         "hash": ev.file_hash,
                     }
-                files_in[ev.path]["actions"].append(ev.action.value)
+                files_in[ev.path]["actions"].append(ev.action.name)
 
         data_out = []
         if self._net_profiler:
@@ -407,7 +451,7 @@ class Guard:
         return {
             "session_id": self._session_id,
             "data_left_system": self.did_data_leave(),
-            "risk_level": self._overall_risk.value,
+            "risk_level": self._overall_risk.name,
             "file_events": len(self.file_events()),
             "network_events": len(self.net_events()),
             "process_events": len(self.proc_events()),
@@ -420,9 +464,51 @@ class Guard:
         """One-line summary."""
         return (
             f"antguard: data_left={self.did_data_leave()} "
-            f"risk={self._overall_risk.value} "
+            f"risk={self._overall_risk.name} "
             f"files={len(self.file_events())} "
             f"net={len(self.net_events())} "
             f"proc={len(self.proc_events())} "
             f"correlations={len(self.correlations())}"
         )
+
+    # --- Policy API ---
+
+    def policy_violations(self) -> List[PolicyViolation]:
+        """Policy violations detected during session."""
+        if self._policy:
+            return self._policy.violations
+        return []
+
+    def generate_baseline(self) -> BaselineGenerator:
+        """Generate a baseline from this session's observed behavior."""
+        bg = BaselineGenerator()
+        for ev in self.file_events():
+            bg.observe_file(ev)
+        for ev in self.net_events():
+            bg.observe_network(ev)
+        for ev in self.proc_events():
+            bg.observe_process(ev)
+        metrics = self.runtime_metrics()
+        if metrics and metrics.snapshot_count > 0:
+            bg.observe_runtime(metrics.cpu_avg, metrics.memory_avg_bytes)
+        return bg
+
+    # --- Observer API ---
+
+    def endpoint_calls(self) -> List[EndpointCall]:
+        """Known service endpoint calls detected during session."""
+        if self._observer:
+            return self._observer.endpoint_calls
+        return []
+
+    def file_to_endpoint(self) -> List[FileToEndpointCorrelation]:
+        """Correlations between file reads and endpoint calls."""
+        if self._observer:
+            return self._observer.file_to_endpoint
+        return []
+
+    def observer_summary(self) -> Optional[Any]:
+        """Observer summary - services contacted, call counts, bytes."""
+        if self._observer:
+            return self._observer.summarize()
+        return None

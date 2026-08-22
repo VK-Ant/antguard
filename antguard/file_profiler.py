@@ -1,7 +1,16 @@
-"""antguard file profiler. Watches directories for file events."""
+"""antguard file profiler. Watches directories for file events.
+
+Uses two detection methods:
+1. watchdog - catches create/modify/delete/move (OS-level filesystem events)
+2. open() hook - catches file reads from Python processes (monkey-patches builtins.open)
+
+Together these cover both reads and writes across all platforms.
+"""
 
 import os
+import sys
 import time
+import builtins
 import threading
 from typing import List, Dict, Optional, Callable
 
@@ -59,9 +68,13 @@ class FileProfiler:
         self._observer: Optional[Observer] = None
         self._events: List[FileEvent] = []
         self._lock = threading.Lock()
+        self._original_open = None
+        self._hook_active = False
 
         # file fingerprints: path -> {hash, chunks, size}
         self._fingerprints: Dict[str, dict] = {}
+        # track seen events to avoid duplicates
+        self._seen: set = set()
 
     def _build_fingerprints(self):
         for watch_path in self._watch_paths:
@@ -87,6 +100,14 @@ class FileProfiler:
                 "size": fsize,
             }
 
+    def _is_watched(self, path: str) -> bool:
+        """Check if path is under any watched directory."""
+        abs_path = os.path.abspath(path)
+        for wp in self._watch_paths:
+            if abs_path.startswith(wp + os.sep) or abs_path == wp:
+                return True
+        return False
+
     def _get_process_info(self):
         try:
             import psutil
@@ -101,15 +122,32 @@ class FileProfiler:
         except Exception:
             return {"name": "", "pid": 0, "parent_name": "", "parent_pid": 0}
 
+    def _dedup_key(self, action: FileAction, path: str) -> str:
+        # deduplicate within 0.5 second windows
+        ts_bucket = int(time.time() * 2)
+        return f"{action.value}:{path}:{ts_bucket}"
+
     def _record(self, action: FileAction, path: str, dest: str = ""):
         abs_path = os.path.abspath(path)
+
+        # dedup
+        key = self._dedup_key(action, abs_path)
+        if key in self._seen:
+            return
+        self._seen.add(key)
+
         sz = file_size(abs_path) if action != FileAction.DELETE else 0
         fhash = ""
 
-        if action in (FileAction.CREATE, FileAction.MODIFY):
+        if action in (FileAction.CREATE, FileAction.MODIFY, FileAction.WRITE):
             fhash = file_sha256(abs_path)
             if fhash:
                 self._fingerprint_file(abs_path)
+        elif action == FileAction.READ:
+            fp = self._fingerprints.get(abs_path, {})
+            fhash = fp.get("hash", "")
+            if not fhash:
+                fhash = file_sha256(abs_path)
         elif action == FileAction.DELETE:
             self._fingerprints.pop(abs_path, None)
         elif action == FileAction.MOVE and dest:
@@ -143,8 +181,42 @@ class FileProfiler:
         if self._on_event:
             self._on_event(event)
 
+    def _install_open_hook(self):
+        """Monkey-patch builtins.open to detect file reads on watched paths."""
+        self._original_open = builtins.open
+        profiler = self
+
+        def _hooked_open(file, mode="r", *args, **kwargs):
+            result = profiler._original_open(file, mode, *args, **kwargs)
+            try:
+                if isinstance(file, (str, bytes)):
+                    filepath = str(file)
+                    if profiler._hook_active and profiler._is_watched(filepath):
+                        if "r" in mode or mode == "":
+                            profiler._record(FileAction.READ, filepath)
+                        elif "w" in mode or "a" in mode:
+                            profiler._record(FileAction.WRITE, filepath)
+            except Exception:
+                pass
+            return result
+
+        builtins.open = _hooked_open
+        self._hook_active = True
+
+    def _remove_open_hook(self):
+        """Restore original builtins.open."""
+        self._hook_active = False
+        if self._original_open:
+            builtins.open = self._original_open
+            self._original_open = None
+
     def start(self):
         self._build_fingerprints()
+
+        # install open() hook for read detection
+        self._install_open_hook()
+
+        # start watchdog for OS-level create/modify/delete/move
         self._observer = Observer()
         handler = _FileEventHandler(self)
         for wpath in self._watch_paths:
@@ -158,6 +230,9 @@ class FileProfiler:
         self._observer.start()
 
     def stop(self):
+        # remove open() hook first
+        self._remove_open_hook()
+
         if self._observer:
             self._observer.stop()
             self._observer.join(timeout=5)
@@ -173,7 +248,9 @@ class FileProfiler:
         return dict(self._fingerprints)
 
     def get_reads(self) -> List[FileEvent]:
-        return [e for e in self.events if e.action in (FileAction.READ, FileAction.MODIFY)]
+        return [e for e in self.events if e.action in (FileAction.READ,)]
 
     def get_writes(self) -> List[FileEvent]:
-        return [e for e in self.events if e.action in (FileAction.WRITE, FileAction.CREATE)]
+        return [e for e in self.events if e.action in (
+            FileAction.WRITE, FileAction.CREATE, FileAction.MODIFY,
+        )]
