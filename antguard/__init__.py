@@ -224,14 +224,13 @@ class Guard:
             if max_corr_risk.value in ("HIGH", "CRITICAL"):
                 risk = max_corr_risk
 
-        # external network with no correlation
+        # external network from watched processes only
         if self._net_profiler:
-            ext = self._net_profiler.get_external()
-            if ext and risk == RiskLevel.LOW:
+            related = self._get_related_network_events()
+            if related and risk == RiskLevel.LOW:
                 risk = RiskLevel.MEDIUM
-
-            high_risk_net = self._net_profiler.get_high_risk()
-            if high_risk_net and risk.value not in ("HIGH", "CRITICAL"):
+            high_risk = [e for e in related if e.risk.value in ("HIGH", "CRITICAL")]
+            if high_risk and risk.value not in ("HIGH", "CRITICAL"):
                 risk = RiskLevel.HIGH
 
         # suspicious processes
@@ -242,22 +241,52 @@ class Guard:
 
         self._overall_risk = risk
 
+    def _get_watched_pids(self) -> set:
+        """Get PIDs of processes that accessed watched files."""
+        pids = set()
+        if self._file_profiler:
+            for ev in self._file_profiler.events:
+                if ev.process_pid > 0:
+                    pids.add(ev.process_pid)
+        # always include current process
+        try:
+            import psutil
+            pids.add(psutil.Process().pid)
+        except Exception:
+            pass
+        return pids
+
+    def _get_related_network_events(self) -> list:
+        """Get external network events ONLY from processes that touched watched files."""
+        if not self._net_profiler:
+            return []
+        watched_pids = self._get_watched_pids()
+        return [
+            e for e in self._net_profiler.get_external()
+            if e.process_pid in watched_pids
+        ]
+
     # --- Public Query API ---
 
     def did_data_leave(self) -> bool:
-        """The one answer that matters: did any data leave this machine?"""
+        """The one answer that matters: did any data leave this machine?
+
+        Only returns True if a process that accessed watched files
+        also made external network connections, or if byte-flow
+        correlation detected file data in outbound traffic.
+        Background system connections are ignored.
+        """
         if self._data_left is not None:
             return self._data_left
 
-        # check network events for external connections
-        if self._net_profiler:
-            ext = self._net_profiler.get_external()
-            if ext:
-                self._data_left = True
-                return True
-
-        # check correlations
+        # check correlations (strongest signal)
         if self._correlations:
+            self._data_left = True
+            return True
+
+        # check network events from watched processes only
+        related = self._get_related_network_events()
+        if related:
             self._data_left = True
             return True
 
@@ -275,6 +304,12 @@ class Guard:
         if self._net_profiler:
             return self._net_profiler.events
         return []
+
+    def net_events_related(self) -> List[NetworkEvent]:
+        """Network events only from processes that touched watched files.
+        Filters out background system connections (antivirus, OS updates, etc).
+        """
+        return self._get_related_network_events()
 
     def proc_events(self) -> List[ProcessEvent]:
         """All process events recorded during session."""
