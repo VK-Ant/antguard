@@ -1,3 +1,38 @@
+Metadata-Version: 2.4
+Name: antguard
+Version: 0.1.0
+Summary: Guard. Detect. Protect. Pure system-level profiler for AI data privacy.
+Author: VK-Ant (Venkatkumar Rajan)
+License: Apache-2.0
+Project-URL: Homepage, https://github.com/VK-Ant/antguard
+Project-URL: Repository, https://github.com/VK-Ant/antguard
+Project-URL: Issues, https://github.com/VK-Ant/antguard/issues
+Keywords: ai-security,data-privacy,runtime-monitoring,profiler,audit,exfiltration-detection,file-monitoring,network-monitoring
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Security
+Classifier: Topic :: System :: Monitoring
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: watchdog>=3.0
+Requires-Dist: psutil>=5.9
+Provides-Extra: gpu
+Requires-Dist: pynvml>=11.0; extra == "gpu"
+Provides-Extra: all
+Requires-Dist: pynvml>=11.0; extra == "all"
+Dynamic: license-file
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/VK-Ant/antguard/main/assets/antguard.png" alt="antguard" width="800"/>
 </p>
