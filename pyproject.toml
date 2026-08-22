@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "antguard"
-version = "0.1.1"
-description = "Guard. Detect. Protect. Pure system-level profiler for AI data privacy."
+version = "0.1.2"
+description = "Guard, Detect, Protect. Pure system-level profiler for AI data privacy."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.8"
