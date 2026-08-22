@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/antguard/"><img src="https://img.shields.io/badge/PyPI-v0.3.1-green" alt="PyPI"></a>
+  <a href="https://pypi.org/project/antguard/"><img src="https://img.shields.io/badge/PyPI-green" alt="PyPI"></a>
   <a href="https://github.com/VK-Ant/antguard/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://colab.research.google.com/github/VK-Ant/antguard/blob/main/demo/antguard_quickstart.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 </p>
